@@ -1,23 +1,34 @@
-# dotnet-microservices
-Building Microservices with .NET
+# Dotnet Microservices
+
+<i>Building Microservices with .NET</i>
 ---
 Process to locally build NuGet package `Play.Common` and add it as dependencies to other microservices:
 
-### **1. inside /Play.Common/src/Play.Common 
+### **1. inside /Play.Common/src/Play.Common** 
+```sh
 dotnet pack -o ./nupkgs
+```
 
-### **2. inside /Play.Common/src/Play.Common --> targeting /dotnet-microservices/packages directory
-dotnet pack -o ../../packages/ 
+### **2. inside /Play.Common/src/Play.Common --> targeting /dotnet-microservices/packages directory**
+```sh
+dotnet pack -o ../../packages/
+```
 
-### **3. Add the locally built package to the nuget list
+### **3. Add the locally built package to the nuget list**
+```sh
 dotnet add package Play.Common --source /home/USER/workspace/PlayEconomy/packages/
+```
 
-### **4. list nuget packages 
-dotnet nuget list source 
+### **4. list nuget packages**
+```sh
+dotnet nuget list source
+```
 
-### **5. Add Play.Common package as a dependency a repository
-dotnet nuget add source /home/USER/dotnet-microservices/packages -n Play.Common 
----
+### **5. Add Play.Common package as a dependency a repository**
+```sh
+dotnet nuget add source /home/USER/dotnet-microservices/packages -n Play.Common
+```
+
 ---
 To version your locally built NuGet package incrementally, follow these steps:
 
