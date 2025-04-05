@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Polly.CircuitBreaker;
@@ -28,6 +29,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMongo()
                 .AddMongoRepository<InventoryItem>("inventoryitems");
 
+builder.Services.AddHttpClient<CatalogClient>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:5001");
+})
+.ConfigurePrimaryHttpMessageHandler(() =>
+{
+    var handler = new HttpClientHandler();
+    handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+    {
+        if (cert?.Subject.Contains("localhost") ?? false)
+            return true; // Trust localhost certificates
+        return errors == System.Net.Security.SslPolicyErrors.None;
+    };
+    return handler;
+})
+.AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(1));
 
 // builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
 

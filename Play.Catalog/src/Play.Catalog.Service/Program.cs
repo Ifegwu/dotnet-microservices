@@ -14,10 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<ServiceSettings>(builder.Configuration.GetSection("ServiceSettings"));
 
 // Register MongoDB services
-builder.Services.AddMongo(builder.Configuration);
+// builder.Services.AddMongo(builder.Configuration);
 
 // Register MongoDB repository for Item entity
-builder.Services.AddMongoRepository<Item>("items");
+builder.Services.AddMongo()
+                .AddMongoRepository<Item>("items");
 
 // Add services to the container.
 builder.Services.AddControllers();
