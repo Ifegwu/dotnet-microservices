@@ -1,10 +1,13 @@
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 // Add Swagger to the API
 using Microsoft.OpenApi.Models;
 using Play.Catalog.Service.Entities;
+using Play.Catalog.Service.Settings;
 using Play.Common.MongoDB;
 using Play.Common.Settings;
 
@@ -19,6 +22,27 @@ builder.Services.Configure<ServiceSettings>(builder.Configuration.GetSection("Se
 // Register MongoDB repository for Item entity
 builder.Services.AddMongo()
                 .AddMongoRepository<Item>("items");
+
+// RabbitMQ Configuration
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, configurator) =>
+    {
+        var serviceSettings = builder.Configuration
+            .GetSection(nameof(ServiceSettings))
+            .Get<ServiceSettings>();
+
+        var rabbitMQSettings = builder.Configuration
+            .GetSection(nameof(RabbitMQSettings))
+            .Get<RabbitMQSettings>();
+
+        configurator.Host(rabbitMQSettings.Host);
+        configurator.ConfigureEndpoints(
+            context,
+            new KebabCaseEndpointNameFormatter(serviceSettings.ServiceName, false));
+    });
+});
+
 
 // Add services to the container.
 builder.Services.AddControllers();
