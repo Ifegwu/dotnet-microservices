@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +28,10 @@ namespace Play.Common.MassTransit
                     configurator.ConfigureEndpoints(
                         context,
                         new KebabCaseEndpointNameFormatter(serviceSettings.ServiceName, false));
+                    configurator.UseMessageRetry(retryConfigurator =>
+                    {
+                        retryConfigurator.Interval(3, TimeSpan.FromSeconds(5));
+                    });
                 });
             });
 
