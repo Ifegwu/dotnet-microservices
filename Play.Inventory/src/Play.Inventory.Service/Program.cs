@@ -19,6 +19,8 @@ using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Microsoft.Extensions.Configuration;
+using Play.Catalog.Contracts;
+using Play.Common.MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,101 +29,44 @@ var builder = WebApplication.CreateBuilder(args);
 // builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
 
 builder.Services.AddMongo()
-                .AddMongoRepository<InventoryItem>("inventoryitems");
-
-Random jitterer = new Random();
-
-builder.Services.AddHttpClient<CatalogClient>(client =>
-{
-    client.BaseAddress = new Uri("https://localhost:5001");
-})
-.ConfigurePrimaryHttpMessageHandler(() =>
-{
-    var handler = new HttpClientHandler();
-    handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
-    {
-        if (cert?.Subject.Contains("localhost") ?? false)
-            return true; // Trust localhost certificates
-        return errors == System.Net.Security.SslPolicyErrors.None;
-    };
-    return handler;
-})
-.AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.Or<TimeoutRejectedException>().WaitAndRetryAsync(
-    5,
-    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
-                    + TimeSpan.FromMilliseconds(jitterer.Next(0, 1000))
-    // onRetry: (outcome, timespan, retryAttempt, context) =>
-    // {
-    //     var serviceProvider = context.GetServiceProvider();
-    //     var logger = serviceProvider.GetRequiredService<ILogger<CatalogClient>>();
-    //     logger.LogWarning($"Delaying for {timespan.TotalSeconds} seconds, then making retry {retryAttempt}");
-    // }
-))
-.AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.Or<TimeoutRejectedException>().CircuitBreakerAsync(
-    3,
-    TimeSpan.FromSeconds(15)
-// onBreak: (outcome, timespan, context) =>
-// {
-//     var serviceProvider = context.GetServiceProvider();
-//     var logger = serviceProvider.GetRequiredService<ILogger<CatalogClient>>();
-//     logger.LogWarning($"Opening the circuit for {timespan.TotalSeconds} seconds...");
-// },
-// onReset: (context) =>
-// {
-//     var serviceProvider = context.GetServiceProvider();
-//     var logger = serviceProvider.GetRequiredService<ILogger<CatalogClient>>();
-//     logger.LogWarning($"Closing the circuit...");
-// }
-))
-.AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(1));
-
-// builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
-
-// builder.Services.AddScoped<IRepository<InventoryItem>, MongoRepository<InventoryItem>>();
-// builder.Services.AddScoped(typeof(IRepository<InventoryItem>), typeof(MongoRepository<InventoryItem>));
+                .AddMongoRepository<InventoryItem>("inventoryitems")
+                .AddMongoRepository<CatalogItem>("catalogitems")
+                .AddMassTransitWithRabbitMq();
 
 // Random jitterer = new Random();
+
 // builder.Services.AddHttpClient<CatalogClient>(client =>
 // {
 //     client.BaseAddress = new Uri("https://localhost:5001");
 // })
-// // Retry Policy
-// .AddPolicyHandler(HttpPolicyExtensions
-//     .HandleTransientHttpError()
-//     .Or<TimeoutRejectedException>()
-//     .WaitAndRetryAsync(
-//         5,
-//         retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
-//                         + TimeSpan.FromMilliseconds(jitterer.Next(0, 1000)),
-//         onRetry: (outcome, timespan, retryAttempt, context) =>
-//         {
-//             using var scope = builder.Services.BuildServiceProvider().CreateScope();
-//             var logger = scope.ServiceProvider.GetRequiredService<ILogger<CatalogClient>>();
-//             logger?.LogWarning($"Delaying for {timespan.TotalSeconds} seconds, then making retry {retryAttempt}");
-//         }
-//     ))
-// // Circuit Breaker Policy
-// .AddPolicyHandler(HttpPolicyExtensions
-//     .HandleTransientHttpError()
-//     .Or<TimeoutRejectedException>()
-//     .CircuitBreakerAsync(
-//         3,
-//         TimeSpan.FromSeconds(15),
-//         onBreak: (outcome, timespan, context) =>
-//         {
-//             using var scope = builder.Services.BuildServiceProvider().CreateScope();
-//             var logger = scope.ServiceProvider.GetRequiredService<ILogger<CatalogClient>>();
-//             logger?.LogWarning($"Opening the circuit for {timespan.TotalSeconds} seconds...");
-//         },
-//         onReset: (context) =>
-//         {
-//             using var scope = builder.Services.BuildServiceProvider().CreateScope();
-//             var logger = scope.ServiceProvider.GetRequiredService<ILogger<CatalogClient>>();
-//             logger?.LogWarning("Closing the circuit...");
-//         }
-//     ))
-// // Timeout Policy
-// .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(1)));
+// .ConfigurePrimaryHttpMessageHandler(() =>
+// {
+//     var handler = new HttpClientHandler();
+//     handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+//     {
+//         if (cert?.Subject.Contains("localhost") ?? false)
+//             return true; // Trust localhost certificates
+//         return errors == System.Net.Security.SslPolicyErrors.None;
+//     };
+//     return handler;
+// })
+// .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.Or<TimeoutRejectedException>().WaitAndRetryAsync(
+//     5,
+//     retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
+//                     + TimeSpan.FromMilliseconds(jitterer.Next(0, 1000))
+//     // onRetry: (outcome, timespan, retryAttempt, context) =>
+//     // {
+//     //     var serviceProvider = context.GetServiceProvider();
+//     //     var logger = serviceProvider.GetRequiredService<ILogger<CatalogClient>>();
+//     //     logger.LogWarning($"Delaying for {timespan.TotalSeconds} seconds, then making retry {retryAttempt}");
+//     // }
+// ))
+// .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.Or<TimeoutRejectedException>().CircuitBreakerAsync(
+//     3,
+//     TimeSpan.FromSeconds(15)
+// ))
+// .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(1));
+
 
 // Add services to the container.
 builder.Services.AddControllers();
