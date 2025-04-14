@@ -19,7 +19,7 @@ builder.Services.AddRazorPages();
 BsonSerializer.RegisterSerializer(new GuidSerializer(MongoDB.Bson.BsonType.String));
 var serviceSettings = builder.Configuration.GetSection(nameof(ServiceSettings)).Get<ServiceSettings>();
 var mongoDbSettings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
-var identityServerSettings = new IdentityServerSettings();
+var identityServerSettings = builder.Configuration.GetSection(nameof(IdentityServerSettings)).Get<IdentityServerSettings>();
 
 builder.Services
         .AddIdentity<ApplicationUser, ApplicationRole>()
@@ -31,7 +31,12 @@ builder.Services
         .AddDefaultUI()
         .AddDefaultTokenProviders();
 
-builder.Services.AddIdentityServer()
+builder.Services.AddIdentityServer(options =>
+{
+    options.Events.RaiseSuccessEvents = true;
+    options.Events.RaiseFailureEvents = true;
+    options.Events.RaiseErrorEvents = true;
+})
         .AddAspNetIdentity<ApplicationUser>()
         .AddInMemoryApiScopes(identityServerSettings.ApiScopes)
         .AddInMemoryClients(identityServerSettings.Clients)
