@@ -9,6 +9,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Play.Common.Settings;
 using Play.Identity.Service.Entities;
+using Play.Identity.Service.Settings;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,7 @@ builder.Services.AddRazorPages();
 BsonSerializer.RegisterSerializer(new GuidSerializer(MongoDB.Bson.BsonType.String));
 var serviceSettings = builder.Configuration.GetSection(nameof(ServiceSettings)).Get<ServiceSettings>();
 var mongoDbSettings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
+var identityServerSettings = new IdentityServerSettings();
 
 builder.Services
         .AddIdentity<ApplicationUser, ApplicationRole>()
@@ -28,6 +30,12 @@ builder.Services
         )
         .AddDefaultUI()
         .AddDefaultTokenProviders();
+
+builder.Services.AddIdentityServer()
+        .AddAspNetIdentity<ApplicationUser>()
+        .AddInMemoryApiScopes(identityServerSettings.ApiScopes)
+        .AddInMemoryClients(identityServerSettings.Clients)
+        .AddInMemoryIdentityResources(identityServerSettings.IdentityResources);
 
 // Add services to the container.
 
@@ -64,6 +72,10 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseIdentityServer();
 
 app.UseAuthorization();
 
