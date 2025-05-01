@@ -13,6 +13,7 @@ namespace Play.Inventory.Service.Controllers
 {
     [ApiController]
     [Route("items")]
+    [Authorize]
     public class ItemsController : ControllerBase
     {
         private readonly IRepository<InventoryItem> inventoryItemsRepository;

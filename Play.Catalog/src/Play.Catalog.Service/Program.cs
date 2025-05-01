@@ -13,6 +13,7 @@ using Play.Catalog.Service.Entities;
 using Play.Common.MassTransit;
 using Play.Common.MongoDB;
 using Play.Common.Settings;
+using Play.Common.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,29 +28,30 @@ var serviceSettings = builder.Configuration.GetSection("ServiceSettings").Get<Se
 // Register MongoDB repository for Item entity
 builder.Services.AddMongo()
                 .AddMongoRepository<Item>("items")
-                .AddMassTransitWithRabbitMq();
+                .AddMassTransitWithRabbitMq()
+                .AddJwtBearerAuthentication();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.Authority = "https://localhost:5003";
-                    options.Audience = serviceSettings.ServiceName;
-                    options.RequireHttpsMetadata = false;
+// builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//                 .AddJwtBearer(options =>
+//                 {
+//                     options.Authority = "https://localhost:5003";
+//                     options.Audience = serviceSettings.ServiceName;
+//                     options.RequireHttpsMetadata = false;
 
-                    options.Events = new JwtBearerEvents
-                    {
-                        OnAuthenticationFailed = context =>
-                        {
-                            Console.WriteLine($"Token validation failed: {context.Exception.Message}");
-                            return Task.CompletedTask;
-                        },
-                        OnTokenValidated = context =>
-                        {
-                            Console.WriteLine("Token successfully validated.");
-                            return Task.CompletedTask;
-                        }
-                    };
-                });
+//                     options.Events = new JwtBearerEvents
+//                     {
+//                         OnAuthenticationFailed = context =>
+//                         {
+//                             Console.WriteLine($"Token validation failed: {context.Exception.Message}");
+//                             return Task.CompletedTask;
+//                         },
+//                         OnTokenValidated = context =>
+//                         {
+//                             Console.WriteLine("Token successfully validated.");
+//                             return Task.CompletedTask;
+//                         }
+//                     };
+//                 });
 
 // Add services to the container.
 builder.Services.AddControllers();

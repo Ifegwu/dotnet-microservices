@@ -21,6 +21,7 @@ using MongoDB.Driver;
 using Microsoft.Extensions.Configuration;
 using Play.Catalog.Contracts;
 using Play.Common.MassTransit;
+using Play.Common.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +32,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMongo()
                 .AddMongoRepository<InventoryItem>("inventoryitems")
                 .AddMongoRepository<CatalogItem>("catalogitems")
-                .AddMassTransitWithRabbitMq();
+                .AddMassTransitWithRabbitMq()
+                .AddJwtBearerAuthentication();
 
 // Random jitterer = new Random();
 
@@ -102,7 +104,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
