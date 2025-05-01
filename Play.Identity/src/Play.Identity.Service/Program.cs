@@ -44,6 +44,8 @@ builder.Services.AddIdentityServer(options =>
         .AddInMemoryIdentityResources(identityServerSettings.IdentityResources)
         .AddDeveloperSigningCredential();
 
+builder.Services.AddLocalApiAuthentication();
+
 // Add services to the container.
 
 builder.Services.AddControllers();

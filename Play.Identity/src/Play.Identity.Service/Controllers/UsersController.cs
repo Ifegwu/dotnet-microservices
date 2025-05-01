@@ -4,12 +4,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Play.Identity.Service.Entities;
+using Duende.IdentityServer;
 
 namespace Play.Identity.Service.Controller
 {
     [ApiController]
     [Route("users")]
+    [Authorize(Policy = IdentityServerConstants.LocalApi.PolicyName)]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> userManager;
