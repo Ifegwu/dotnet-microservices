@@ -9,6 +9,8 @@ using Play.Common;
 using Play.Inventory.Service.Dtos;
 using Play.Inventory.Service.Entities;
 using Play.Inventory.Service.Clients;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Play.Inventory.Service.Controllers
 {
@@ -17,6 +19,7 @@ namespace Play.Inventory.Service.Controllers
     [Authorize]
     public class ItemsController : ControllerBase
     {
+        private const string AdminRole = "Admin";
         private readonly IRepository<InventoryItem> inventoryItemsRepository;
         private readonly IRepository<CatalogItem> catalogItemsRepository;
         private readonly CatalogClient catalogClient;
@@ -34,23 +37,31 @@ namespace Play.Inventory.Service.Controllers
                 return BadRequest();
             }
 
+            var currentUserId = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (Guid.Parse(currentUserId) != userId)
+            {
+                if (!User.IsInRole(AdminRole))
+                {
+                    return Forbid();
+                }
+            }
+
             var inventoryItemEntities = await inventoryItemsRepository.GetAllAsync(item => item.UserId == userId);
             var itemIds = inventoryItemEntities.Select(item => item.CatalogItemId);
             var catalogItemEntities = await catalogItemsRepository.GetAllAsync(item => itemIds.Contains(item.Id));
 
-            var InventoryItemDto = inventoryItemEntities.Select(inventoryItem =>
+            var inventoryItemDtos = inventoryItemEntities.Select(inventoryItem =>
             {
                 var catalogItem = catalogItemEntities.SingleOrDefault(catalogItem => catalogItem.Id == inventoryItem.CatalogItemId);
-                return inventoryItem.AsDto(catalogItem.Name, catalogItem.Description);
+                return inventoryItem.AsDto(catalogItem?.Name ?? string.Empty, catalogItem?.Description ?? string.Empty);
             });
-            if (InventoryItemDto == null)
-            {
-                return NotFound(); // Return HTTP 404 if no item exists
-            }
-            return Ok(InventoryItemDto);
+
+            return Ok(inventoryItemDtos);
         }
 
         [HttpPost]
+        [Authorize(Roles = AdminRole)]
         public async Task<ActionResult> PostAsync(GrantItemsDto grantItemsDto)
         {
             var inventoryItem = await inventoryItemsRepository.GetAsync(

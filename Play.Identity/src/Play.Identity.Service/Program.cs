@@ -11,7 +11,9 @@ using Play.Common.Settings;
 using Play.Identity.Service.Entities;
 using Play.Identity.Service.Settings;
 using Play.Identity.Service.HostedServices;
-
+using System.Security.Claims;
+using Duende.IdentityServer.Models;
+using Duende.IdentityServer;
 
 var builder = WebApplication.CreateBuilder(args);
 // Register Razor Pages
@@ -38,18 +40,23 @@ builder.Services.AddIdentityServer(options =>
     options.Events.RaiseSuccessEvents = true;
     options.Events.RaiseFailureEvents = true;
     options.Events.RaiseErrorEvents = true;
+    options.EmitStaticAudienceClaim = true;
 })
         .AddAspNetIdentity<ApplicationUser>()
         .AddInMemoryApiScopes(identityServerSettings.ApiScopes)
         .AddInMemoryApiResources(identityServerSettings.ApiResources)
         .AddInMemoryClients(identityServerSettings.Clients)
-        .AddInMemoryIdentityResources(identityServerSettings.IdentityResources)
+        .AddInMemoryIdentityResources(new IdentityResource[]
+        {
+            new IdentityResources.OpenId(),
+            new IdentityResources.Profile(),
+            new IdentityResource("roles", new[] { "role" })
+        })
         .AddDeveloperSigningCredential();
 
 builder.Services.AddLocalApiAuthentication();
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 
 builder.Services.AddHostedService<IdentitySeedHostedService>();
@@ -80,7 +87,6 @@ if (app.Environment.IsDevelopment())
     });
     app.MapOpenApi();
 }
-
 
 app.UseHttpsRedirection();
 
