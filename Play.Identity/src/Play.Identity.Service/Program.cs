@@ -55,7 +55,13 @@ builder.Services.AddIdentityServer(options =>
     options.EmitStaticAudienceClaim = true;
 })
         .AddAspNetIdentity<ApplicationUser>()
-        .AddInMemoryApiScopes(identityServerSettings.ApiScopes)
+        .AddInMemoryApiScopes(new[]
+        {
+            new ApiScope("catalog.fullaccess", "Full access to Catalog API"),
+            new ApiScope("inventory.fullaccess", "Full access to Inventory API"),
+            new ApiScope("trading.fullaccess", "Full access to Trading API"),
+            new ApiScope("IdentityServerApi", "Identity Server API")
+        })
         .AddInMemoryApiResources(identityServerSettings.ApiResources)
         .AddInMemoryClients(identityServerSettings.Clients)
         .AddInMemoryIdentityResources(new IdentityResource[]
