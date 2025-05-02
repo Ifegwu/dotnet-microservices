@@ -6,14 +6,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-
-// Add Swagger to the API
 using Microsoft.OpenApi.Models;
 using Play.Catalog.Service.Entities;
 using Play.Common.MassTransit;
 using Play.Common.MongoDB;
 using Play.Common.Settings;
 using Play.Common.Identity;
+using Play.Catalog.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +30,19 @@ builder.Services.AddMongo()
                 .AddMassTransitWithRabbitMq()
                 .AddJwtBearerAuthentication();
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Policies.Read, policy =>
+    {
+        policy.RequireRole("Admin");
+        policy.RequireClaim("scope", "catalog.readaccess", "catalog.fullaccess");
+    });
+    options.AddPolicy(Policies.Write, policy =>
+    {
+        policy.RequireRole("Admin");
+        policy.RequireClaim("scope", "catalog.writeaccess", "catalog.fullaccess");
+    });
+});
 // builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 //                 .AddJwtBearer(options =>
 //                 {
