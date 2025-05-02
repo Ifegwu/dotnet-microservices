@@ -10,6 +10,7 @@ using MongoDB.Bson.Serialization.Serializers;
 using Play.Common.Settings;
 using Play.Identity.Service.Entities;
 using Play.Identity.Service.Settings;
+using Play.Identity.Service.HostedServices;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,8 +22,9 @@ var serviceSettings = builder.Configuration.GetSection(nameof(ServiceSettings)).
 var mongoDbSettings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
 var identityServerSettings = builder.Configuration.GetSection(nameof(IdentityServerSettings)).Get<IdentityServerSettings>();
 
-builder.Services
-        .AddIdentity<ApplicationUser, ApplicationRole>()
+builder.Services.Configure<IdentitySettings>(builder.Configuration.GetSection(nameof(IdentitySettings)))
+        .AddDefaultIdentity<ApplicationUser>()
+        .AddRoles<ApplicationRole>()
         .AddMongoDbStores<ApplicationUser, ApplicationRole, Guid>
         (
             mongoDbSettings.ConnectionString,
@@ -49,6 +51,8 @@ builder.Services.AddLocalApiAuthentication();
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+builder.Services.AddHostedService<IdentitySeedHostedService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
