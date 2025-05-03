@@ -14,6 +14,7 @@ using Play.Identity.Service.HostedServices;
 using System.Security.Claims;
 using Duende.IdentityServer.Models;
 using Duende.IdentityServer;
+using Play.Common.MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 // Register Razor Pages
@@ -47,6 +48,13 @@ builder.Services.Configure<IdentitySettings>(builder.Configuration.GetSection(na
         )
         .AddDefaultUI()
         .AddDefaultTokenProviders();
+
+builder.Services.AddMassTransitWithRabbitMq(retryConfigurator =>
+{
+    retryConfigurator.Interval(3, TimeSpan.FromSeconds(5));
+    retryConfigurator.Ignore(typeof(UnknownUserException), typeof(UnknownItemException));
+    retryConfigurator.Ignore(typeof(InsufficientFundsException));
+});
 
 builder.Services.AddIdentityServer(options =>
 {

@@ -22,6 +22,9 @@ using Microsoft.Extensions.Configuration;
 using Play.Catalog.Contracts;
 using Play.Common.MassTransit;
 using Play.Common.Identity;
+using Play.Inventory.Service.Exceptions;
+using GreenPipes;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +35,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMongo()
                 .AddMongoRepository<InventoryItem>("inventoryitems")
                 .AddMongoRepository<CatalogItem>("catalogitems")
-                .AddMassTransitWithRabbitMq()
+                .AddMassTransitWithRabbitMq(retryConfigurator =>
+                {
+                    retryConfigurator.Interval(3, TimeSpan.FromSeconds(5));
+                    retryConfigurator.Ignore(typeof(UnknownItemException));
+                })
                 .AddJwtBearerAuthentication();
 
 // Random jitterer = new Random();

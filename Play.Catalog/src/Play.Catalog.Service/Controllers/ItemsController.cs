@@ -65,7 +65,7 @@ namespace Play.Catalog.Service.Controllers
             };
 
             await itemsRepository.CreateAsync(item);
-            await publicEndpoint.Publish(new CatalogItemCreated(item.Id, item.Name, item.Description));
+            await publicEndpoint.Publish(new CatalogItemCreated(item.Id, item.Name, item.Description, item.Price));
 
             var itemDto = item.AsDto();
             return Created($"/items/{item.Id}", itemDto);
@@ -87,7 +87,7 @@ namespace Play.Catalog.Service.Controllers
             existingItem.Price = updateItemDto.Price;
 
             await itemsRepository.UpdateAsync(existingItem);
-            await publicEndpoint.Publish(new CatalogItemUpdated(existingItem.Id, existingItem.Name, existingItem.Description));
+            await publicEndpoint.Publish(new CatalogItemUpdated(existingItem.Id, existingItem.Name, existingItem.Description, existingItem.Price));
 
             return NoContent();
         }
