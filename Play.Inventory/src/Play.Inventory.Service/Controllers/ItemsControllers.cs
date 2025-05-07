@@ -22,7 +22,7 @@ namespace Play.Inventory.Service.Controllers
         private const string AdminRole = "Admin";
         private readonly IRepository<InventoryItem> inventoryItemsRepository;
         private readonly IRepository<CatalogItem> catalogItemsRepository;
-        private readonly CatalogClient catalogClient;
+        // private readonly CatalogClient catalogClient;
         public ItemsController(IRepository<InventoryItem> inventoryItemsRepository, IRepository<CatalogItem> catalogItemsRepository)
         {
             this.inventoryItemsRepository = inventoryItemsRepository ?? throw new ArgumentNullException(nameof(inventoryItemsRepository));

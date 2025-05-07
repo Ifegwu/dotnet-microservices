@@ -3,18 +3,17 @@ using System.Threading.Tasks;
 using MassTransit;
 using Play.Common;
 using Play.Inventory.Service.Entities;
-using Play.Inventory.Contracts;
 using Play.Inventory.Service.Exceptions;
-
+using Play.Inventory.Contracts;
 
 namespace Play.Inventory.Service.Consumers
 {
-    public class GrantItemsConsumer : IConsumer<GrantItems>
+    public class SubtractItemsConsumer : IConsumer<SubtractItems>
     {
         private readonly IRepository<InventoryItem> inventoryItemsRepository;
         private readonly IRepository<CatalogItem> catalogItemsRepository;
 
-        public GrantItemsConsumer(
+        public SubtractItemsConsumer(
             IRepository<InventoryItem> inventoryItemsRepository,
             IRepository<CatalogItem> catalogItemsRepository)
         {
@@ -22,12 +21,12 @@ namespace Play.Inventory.Service.Consumers
             this.catalogItemsRepository = catalogItemsRepository;
         }
 
-        public async Task Consume(ConsumeContext<GrantItems> context)
+        public async Task Consume(ConsumeContext<SubtractItems> context)
         {
             var message = context.Message;
-            var item = await catalogItemsRepository.GetAsync(message.CatalogItemId);
 
-            if (item == null)
+            var catalogItem = await catalogItemsRepository.GetAsync(message.CatalogItemId);
+            if (catalogItem == null)
             {
                 throw new UnknownItemException(message.CatalogItemId);
             }
@@ -35,25 +34,13 @@ namespace Play.Inventory.Service.Consumers
             var inventoryItem = await inventoryItemsRepository.GetAsync(
                 item => item.UserId == message.UserId && item.CatalogItemId == message.CatalogItemId);
 
-            if (inventoryItem == null)
+            if (inventoryItem != null)
             {
-                inventoryItem = new InventoryItem
-                {
-                    CatalogItemId = message.CatalogItemId,
-                    UserId = message.UserId,
-                    Quantity = message.Quantity,
-                    AcquiredDate = DateTimeOffset.UtcNow
-                };
-
-                await inventoryItemsRepository.CreateAsync(inventoryItem);
-            }
-            else
-            {
-                inventoryItem.Quantity += message.Quantity;
+                inventoryItem.Quantity -= message.Quantity;
                 await inventoryItemsRepository.UpdateAsync(inventoryItem);
             }
 
-            await context.Publish(new InventoryItemGranted(message.CorrelationId));
+            await context.Publish(new InventoryItemsSubtracted(message.CorrelationId));
         }
     }
 }

@@ -21,6 +21,8 @@ using MongoDB.Driver;
 using Microsoft.Extensions.Configuration;
 using Play.Catalog.Contracts;
 using Play.Common.MassTransit;
+using MassTransit;
+using MassTransit.RetryPolicies;
 using Play.Common.Identity;
 using Play.Inventory.Service.Exceptions;
 
