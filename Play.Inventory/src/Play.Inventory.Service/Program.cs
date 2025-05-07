@@ -23,7 +23,6 @@ using Play.Catalog.Contracts;
 using Play.Common.MassTransit;
 using Play.Common.Identity;
 using Play.Inventory.Service.Exceptions;
-using GreenPipes;
 
 
 var builder = WebApplication.CreateBuilder(args);
