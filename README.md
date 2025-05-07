@@ -1,81 +1,156 @@
-# Dotnet Microservices
+# Play Economy - Microservices Architecture
 
-<i>Building Microservices with .NET</i>
----
-Process to locally build NuGet package `Play.Common` and add it as dependencies to other microservices:
+A microservices-based e-commerce platform built with .NET, featuring a virtual economy system with Gil currency and inventory management.
 
-### **1. inside /Play.Common/src/Play.Common** 
-```sh
-dotnet pack -o ./nupkgs
+## Architecture Overview
+
+The system consists of the following microservices:
+
+### Core Services
+- **Play.Catalog**: Manages the catalog of items available in the store
+- **Play.Inventory**: Handles user inventory and item management
+- **Play.Identity**: Manages user authentication, authorization, and Gil currency
+- **Play.Frontend**: React-based web application for user interaction
+
+### Supporting Services
+- **Play.Common**: Shared library containing common utilities and interfaces
+- **Play.Infra**: Infrastructure components and configurations
+
+## Prerequisites
+
+- .NET 7.0 SDK or later
+- Node.js 16.x or later (for Frontend)
+- Docker and Docker Compose
+- MongoDB
+- RabbitMQ
+
+## Getting Started
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/dotnet-microservices.git
+cd dotnet-microservices
 ```
 
-### **2. inside /Play.Common/src/Play.Common --> targeting /dotnet-microservices/packages directory**
-```sh
+### 2. Set Up Common Library
+```bash
+cd Play.Common/src/Play.Common
 dotnet pack -o ../../packages/
 ```
 
-### **3. Add the locally built package to the nuget list**
-```sh
-dotnet add package Play.Common --source /home/USER/workspace/PlayEconomy/packages/
+### 3. Configure Services
+
+#### Play.Catalog Service
+- Manages item catalog
+- Handles item creation, updates, and deletion
+- Publishes events for inventory updates
+
+#### Play.Inventory Service
+- Manages user inventory
+- Handles item quantity tracking
+- Processes item grants and subtractions
+
+#### Play.Identity Service
+- Handles user authentication and authorization
+- Manages Gil currency transactions
+- Provides user management functionality
+
+#### Play.Frontend
+- React-based web interface
+- Provides user-friendly interaction with all services
+
+### 4. Running the Services
+
+#### Using Docker Compose
+```bash
+docker-compose up -d
 ```
 
-### **4. list nuget packages**
-```sh
-dotnet nuget list source
+#### Manual Setup
+1. Start MongoDB
+2. Start RabbitMQ
+3. Run each service:
+```bash
+# Catalog Service
+cd Play.Catalog/src/Play.Catalog.Service
+dotnet run
+
+# Inventory Service
+cd Play.Inventory/src/Play.Inventory.Service
+dotnet run
+
+# Identity Service
+cd Play.Identity/src/Play.Identity.Service
+dotnet run
+
+# Frontend
+cd Play.Frontend
+npm install
+npm start
 ```
 
-### **5. Add Play.Common package as a dependency a repository**
-```sh
-dotnet nuget add source /home/USER/dotnet-microservices/packages -n Play.Common
+## Features
+
+### User Management
+- User registration and authentication
+- Role-based access control
+- User profile management
+
+### Inventory System
+- Item catalog management
+- User inventory tracking
+- Item quantity management
+
+### Economy System
+- Gil currency management
+- Transaction processing
+- Balance tracking
+
+### Store System
+- Item browsing
+- Purchase processing
+- Inventory updates
+
+## Development
+
+### Adding New Features
+1. Create a new branch
+2. Implement changes
+3. Update tests
+4. Submit pull request
+
+### Testing
+```bash
+# Run all tests
+dotnet test
+
+# Run specific service tests
+cd Play.Catalog/src/Play.Catalog.Service.Tests
+dotnet test
 ```
 
----
-To version your locally built NuGet package incrementally, follow these steps:
-
-### **1. Update the Version Number**
-Before running `dotnet pack`, update the version in your `.csproj` file. Locate the following line and increment the version (e.g., `1.0.0` → `1.0.1`):
-
-```xml
-<PropertyGroup>
-    <Version>1.0.1</Version>
-</PropertyGroup>
+### Common Library Updates
+When updating the common library:
+1. Update version in Play.Common.csproj
+2. Build new package:
+```bash
+cd Play.Common/src/Play.Common
+dotnet pack -o ../../packages/ -p:Version=<new-version>
 ```
+3. Update references in other services
 
-Alternatively, you can specify the version dynamically when running `dotnet pack`:
+## Contributing
 
-```sh
-dotnet pack -o ../../packages/ -p:Version=1.0.1
-```
+1. Fork the repository
+2. Create a feature branch
+3. Commit changes
+4. Push to the branch
+5. Create a pull request
 
-### **2. Build and Pack the NuGet Package**
-Run:
+## License
 
-```sh
-dotnet pack -o ../../packages/ -p:Version=1.0.1
-```
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-This ensures the new version is correctly built and stored in `../../packages/`.
+## Support
 
-### **3. Remove the Old Package (Optional)**
-If you need to remove an old version from your local NuGet source:
-
-```sh
-rm /home/USER/dotnet-microservices/packages/Play.Common.*.nupkg
-```
-
-### **4. Add the New Version as a Dependency**
-Since you've already added the source, you only need to add the updated package:
-
-```sh
-dotnet add package Play.Common --version 1.0.1 --source /home/USER/dotnet-microservices/packages/
-```
-
-### **5. Verify the Installed Version**
-Check if the correct version is installed:
-
-```sh
-dotnet list package
-```
-
-This process ensures that your locally built NuGet package is versioned and correctly linked to your project without conflicts.
----
+For support, please open an issue in the GitHub repository.
