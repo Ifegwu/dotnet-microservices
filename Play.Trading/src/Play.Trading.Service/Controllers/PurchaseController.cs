@@ -14,11 +14,35 @@ namespace Play.Trading.Service.Controllers
     [Authorize]
     public class PurchaseController : ControllerBase
     {
-        private readonly IPublishEndpoint publishEndpoint;
+        readonly IPublishEndpoint publishEndpoint;
+        private readonly IRequestClient<GetPurchaseState> purchaseClient;
 
-        public PurchaseController(IPublishEndpoint publishEndpoint)
+        public PurchaseController(IPublishEndpoint publishEndpoint, IRequestClient<GetPurchaseState> purchaseClient)
         {
             this.publishEndpoint = publishEndpoint;
+            this.purchaseClient = purchaseClient;
+        }
+
+        [HttpGet("state/{correlationId}")]
+        public async Task<IActionResult> GetStatusAsync(Guid correlationId)
+        {
+            var response = await purchaseClient.GetResponse<PurchaseState>(
+                new GetPurchaseState(correlationId));
+
+            var purchaseState = response.Message;
+
+            var purchaseDto = new PurchaseDto(
+                purchaseState.UserId,
+                purchaseState.ItemId,
+                purchaseState.PurchaseTotal,
+                purchaseState.Quantity,
+                purchaseState.CurrentState,
+                purchaseState.ErrorMessage,
+                purchaseState.Received,
+                purchaseState.LastUpdated
+            );
+
+            return Ok(purchaseDto);
         }
 
         [HttpPost]
@@ -41,7 +65,11 @@ namespace Play.Trading.Service.Controllers
 
             await publishEndpoint.Publish(message);
 
-            return Accepted();
+            return AcceptedAtAction(
+                nameof(GetStatusAsync),
+                new { correlationId },
+                new { correlationId }
+            );
         }
     }
 }

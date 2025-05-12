@@ -12,17 +12,20 @@ namespace Play.Trading.Service.StateMachines
         public State Faulted { get; } = null!;
 
         public Event<PurchaseRequested> PurchaseRequested { get; } = null!;
+        public Event<GetPurchaseState> GetPurchaseState { get; } = null!;
 
         public PurchaseStateMachine()
         {
             InstanceState(state => state.CurrentState);
             ConfigureEvents();
             ConfigureInitialState();
+            ConfigureAny();
         }
 
         private void ConfigureEvents()
         {
             Event(() => PurchaseRequested);
+            Event(() => GetPurchaseState);
         }
 
         private void ConfigureInitialState()
@@ -39,6 +42,13 @@ namespace Play.Trading.Service.StateMachines
                         saga.LastUpdated = saga.Received;
                     })
                     .TransitionTo(Accepted)
+            );
+        }
+        private void ConfigureAny()
+        {
+            DuringAny(
+                When(GetPurchaseState)
+                    .Respond(x => x.Instance)
             );
         }
     }

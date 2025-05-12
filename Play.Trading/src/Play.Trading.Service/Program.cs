@@ -44,6 +44,7 @@ void AddMassTransit(WebApplicationBuilder builder)
                 });
     });
     builder.Services.AddMassTransitHostedService();
+    builder.Services.AddGenericRequestClient();
 }
 
 AddMassTransit(builder);
