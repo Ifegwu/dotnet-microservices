@@ -14,17 +14,20 @@ using System;
 using System.Reflection;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
+using Play.Trading.Service.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddMongo()
+    .AddMongoRepository<CatalogItem>("catalogitems")
     .AddJwtBearerAuthentication();
 
 void AddMassTransit(WebApplicationBuilder builder)
 {
     builder.Services.AddMassTransit(configure =>
     {
+        configure.AddConsumers(Assembly.GetEntryAssembly());
         configure.UsingPlayEconomyRabbitMQ();
         configure.AddSagaStateMachine<PurchaseStateMachine, PurchaseState>()
                 .MongoDbRepository(r =>
@@ -54,7 +57,8 @@ AddMassTransit(builder);
 builder.Services.AddControllers(options =>
 {
     options.SuppressAsyncSuffixInActionNames = false;
-});
+})
+.AddJsonOptions(options => options.JsonSerializeroptions.IgnoreNullValues = true);
 
 // Configure Swagger
 builder.Services.AddSwaggerGen(c =>
