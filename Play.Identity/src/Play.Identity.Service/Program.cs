@@ -135,4 +135,15 @@ app.MapControllers();
 
 app.MapRazorPages();
 
+// Add error handling middleware
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
 app.Run();
