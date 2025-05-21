@@ -53,7 +53,7 @@ namespace Play.Inventory.Service.Consumers
                 await inventoryItemsRepository.UpdateAsync(inventoryItem);
             }
 
-            await context.Publish(new InventoryItemGranted(message.CorrelationId));
+            await context.Publish(new InventoryItemsGranted(message.CorrelationId));
         }
     }
 }
