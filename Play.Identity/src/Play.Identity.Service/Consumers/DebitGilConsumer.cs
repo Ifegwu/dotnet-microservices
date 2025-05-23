@@ -35,7 +35,7 @@ namespace Play.Identity.Service.Consumers
 
             await userManager.UpdateAsync(user);
 
-            await context.Publish(new GilDebited(message.CatalogItemId));
+            await context.Publish(new GilDebited(message.CorrelationId));
         }
     }
 }
