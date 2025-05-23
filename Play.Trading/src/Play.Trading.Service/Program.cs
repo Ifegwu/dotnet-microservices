@@ -19,7 +19,7 @@ using Play.Trading.Service.Exceptions;
 using Play.Trading.Service.Settings;
 using System.Text.Json;
 using Play.Inventory.Contracts;
-
+using Play.Identity.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,7 +62,11 @@ void AddMassTransit(WebApplicationBuilder builder)
     });
 
     var queueSettings = builder.Configuration.GetSection(nameof(QueueSettings)).Get<QueueSettings>();
+    if (queueSettings == null)
+        throw new InvalidOperationException("QueueSettings is not configured properly.");
+
     EndpointConvention.Map<GrantItems>(new Uri(queueSettings.GrantItemsQueueAddress));
+    EndpointConvention.Map<DebitGil>(new Uri(queueSettings.DebitGilQueueAddress));
 }
 
 builder.Services.AddControllers(options =>
@@ -72,7 +76,7 @@ builder.Services.AddControllers(options =>
 .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-    options.JsonSerializerOptions.IgnoreNullValues = true;
+    // options.JsonSerializerOptions.IgnoreNullValues = true;
 });
 
 // Configure Swagger

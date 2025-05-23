@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using MassTransit;
+using Play.Identity.Contracts;
 using Play.Inventory.Contracts;
 using Play.Trading.Service.Contracts;
 using Play.Trading.Service.Entities;
@@ -11,29 +12,31 @@ namespace Play.Trading.Service.StateMachines
 {
     public class PurchaseStateMachine : MassTransitStateMachine<PurchaseState>
     {
-        public State Accepted { get; }
-        public State ItemsGranted { get; }
-        public State Completed { get; }
-        public State Faulted { get; }
+        public required State Accepted { get; init; }
+        public required State ItemsGranted { get; init; }
+        public required State Completed { get; init; }
+        public required State Faulted { get; init; }
 
-        public Event<PurchaseRequested> PurchaseRequested { get; }
-        public Event<GetPurchaseState> GetPurchaseState { get; }
-
-        public Event<InventoryItemsGranted> InvetoryItemsGranted { get; }
-        public PurchaseStateMachine()
-        {
-            InstanceState(state => state.CurrentState);
-            ConfigureEvents();
-            ConfigureInitialState();
-            ConfigureAny();
-            ConfigureAccepted();
-        }
+        public required Event<PurchaseRequested> PurchaseRequested { get; init; }
+        public required Event<GetPurchaseState> GetPurchaseState { get; init; }
+        public required Event<InventoryItemsGranted> InvetoryItemsGranted { get; init; }
+        public required Event<GilDebited> GilDebited { get; init; }
 
         private void ConfigureEvents()
         {
             Event(() => PurchaseRequested);
             Event(() => GetPurchaseState);
             Event(() => InvetoryItemsGranted);
+            Event(() => GilDebited);
+        }
+
+        public PurchaseStateMachine()
+        {
+            InstanceState(state => state.CurrentState);
+            ConfigureInitialState();
+            ConfigureAny();
+            ConfigureAccepted();
+            ConfigureItemsGranted();
         }
 
         private void ConfigureInitialState()
@@ -88,9 +91,33 @@ namespace Play.Trading.Service.StateMachines
                     {
                         context.Saga.LastUpdated = DateTimeOffset.UtcNow;
                     })
+                    .Send(context =>
+                    {
+                        if (!context.Saga.PurchaseTotal.HasValue)
+                            throw new InvalidOperationException("Purchase total is not set");
+
+                        return new DebitGil(
+                            context.Saga.UserId,
+                            context.Saga.PurchaseTotal.Value,
+                            context.Saga.CorrelationId
+                        );
+                    })
                     .TransitionTo(ItemsGranted)
             );
         }
+
+        private void ConfigureItemsGranted()
+        {
+            During(ItemsGranted,
+                When(GilDebited)
+                    .Then(context =>
+                    {
+                        context.Saga.LastUpdated = DateTimeOffset.UtcNow;
+                    })
+                    .TransitionTo(Completed)
+            );
+        }
+
         private void ConfigureAny()
         {
             DuringAny(

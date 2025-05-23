@@ -5,7 +5,7 @@ namespace Play.Trading.Service.StateMachines
     public class PurchaseState : SagaStateMachineInstance, ISagaVersion
     {
         public Guid CorrelationId { get; set; }
-        public string CurrentState { get; set; }
+        public string CurrentState { get; set; } = null!;
         public Guid UserId { get; set; }
         public Guid ItemId { get; set; }
         public int Quantity { get; set; }
