@@ -6,5 +6,6 @@ namespace Play.Trading.Service.Settings
     {
         public required string GrantItemsQueueAddress { get; init; }
         public required string DebitGilQueueAddress { get; init; }
+        public required string SubtractItemsQueueAddress { get; init; }
     }
 }

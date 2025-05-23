@@ -21,6 +21,8 @@ namespace Play.Trading.Service.StateMachines
         public required Event<GetPurchaseState> GetPurchaseState { get; init; }
         public required Event<InventoryItemsGranted> InvetoryItemsGranted { get; init; }
         public required Event<GilDebited> GilDebited { get; init; }
+        public required Event<Fault<GrantItems>> GrantItemsFaulted { get; init; }
+        public required Event<Fault<DebitGil>> DebitGilFaulted { get; init; }
 
         private void ConfigureEvents()
         {
@@ -28,6 +30,10 @@ namespace Play.Trading.Service.StateMachines
             Event(() => GetPurchaseState);
             Event(() => InvetoryItemsGranted);
             Event(() => GilDebited);
+            Event(() => GrantItemsFaulted, x => x.CorrelateById(context =>
+                context.Message.Message.CorrelationId));
+            Event(() => DebitGilFaulted, x => x.CorrelateById(context =>
+                context.Message.Message.CorrelationId));
         }
 
         public PurchaseStateMachine()
@@ -37,6 +43,8 @@ namespace Play.Trading.Service.StateMachines
             ConfigureAny();
             ConfigureAccepted();
             ConfigureItemsGranted();
+            ConfigureCompleted();
+            ConfigureFaulted();
         }
 
         private void ConfigureInitialState()
@@ -102,7 +110,14 @@ namespace Play.Trading.Service.StateMachines
                             context.Saga.CorrelationId
                         );
                     })
-                    .TransitionTo(ItemsGranted)
+                    .TransitionTo(ItemsGranted),
+                When(GrantItemsFaulted)
+                    .Then(context =>
+                    {
+                        context.Saga.ErrorMessage = context.Message.Exceptions[0].Message;
+                        context.Saga.LastUpdated = DateTimeOffset.UtcNow;
+                    })
+                    .TransitionTo(Faulted)
             );
         }
 
@@ -114,8 +129,36 @@ namespace Play.Trading.Service.StateMachines
                     {
                         context.Saga.LastUpdated = DateTimeOffset.UtcNow;
                     })
-                    .TransitionTo(Completed)
+                    .TransitionTo(Completed),
+                When(DebitGilFaulted)
+                    .Then(context =>
+                    {
+                        context.Saga.ErrorMessage = context.Message.Exceptions[0].Message;
+                        context.Saga.LastUpdated = DateTimeOffset.UtcNow;
+                    })
+                    .Send(context => new SubtractItems(
+                        context.Saga.UserId,
+                        context.Saga.ItemId,
+                        context.Saga.Quantity,
+                        context.Saga.CorrelationId
+                    ))
+                    .Catch<Exception>(ex =>
+                        ex.Then(context =>
+                        {
+                            context.Saga.ErrorMessage = $"Failed to subtract items: {context.Exception.Message}";
+                            context.Saga.LastUpdated = DateTimeOffset.UtcNow;
+                        })
+                    )
+                    .TransitionTo(Faulted)
             );
+        }
+
+        private void ConfigureCompleted()
+        {
+            During(Completed,
+                Ignore(PurchaseRequested),
+                Ignore(InvetoryItemsGranted),
+                Ignore(GilDebited));
         }
 
         private void ConfigureAny()
@@ -124,6 +167,14 @@ namespace Play.Trading.Service.StateMachines
                 When(GetPurchaseState)
                     .Respond(x => x.Saga)
             );
+        }
+
+        private void ConfigureFaulted()
+        {
+            During(Faulted,
+                Ignore(PurchaseRequested),
+                Ignore(InvetoryItemsGranted),
+                Ignore(GilDebited));
         }
     }
 }
