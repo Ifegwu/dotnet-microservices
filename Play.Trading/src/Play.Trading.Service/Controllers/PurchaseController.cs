@@ -24,11 +24,11 @@ namespace Play.Trading.Service.Controllers
             this.purchaseClient = purchaseClient;
         }
 
-        [HttpGet("state/{correlationId}")]
-        public async Task<ActionResult<PurchaseDto>> GetStatusAsync(Guid correlationId)
+        [HttpGet("state/{idempotencyId}")]
+        public async Task<ActionResult<PurchaseDto>> GetStatusAsync(Guid idempotencyId)
         {
             var response = await purchaseClient.GetResponse<PurchaseState>(
-                new GetPurchaseState(correlationId));
+                new GetPurchaseState(idempotencyId));
 
             var purchaseState = response.Message;
 
@@ -55,21 +55,21 @@ namespace Play.Trading.Service.Controllers
                 return Unauthorized();
             }
 
-            var correlationId = Guid.NewGuid();
-
             var message = new PurchaseRequested(
                 Guid.Parse(userId),
                 purchase.ItemId!.Value,
                 purchase.Quantity,
-                correlationId
+                purchase.IdempotencyId.Value
             );
 
             await publishEndpoint.Publish(message);
 
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
             return AcceptedAtAction(
                 nameof(GetStatusAsync),
-                new { correlationId },
-                new { correlationId }
+                new { purchase.IdempotencyId },
+                new { purchase.IdempotencyId }
             );
         }
     }
