@@ -94,6 +94,7 @@ namespace Play.Trading.Service.StateMachines
         private void ConfigureAccepted()
         {
             During(Accepted,
+                Ignore(PurchaseRequested),
                 When(InvetoryItemsGranted)
                     .Then(context =>
                     {
@@ -124,6 +125,8 @@ namespace Play.Trading.Service.StateMachines
         private void ConfigureItemsGranted()
         {
             During(ItemsGranted,
+                Ignore(PurchaseRequested),
+                Ignore(InvetoryItemsGranted),
                 When(GilDebited)
                     .Then(context =>
                     {
@@ -158,7 +161,8 @@ namespace Play.Trading.Service.StateMachines
             During(Completed,
                 Ignore(PurchaseRequested),
                 Ignore(InvetoryItemsGranted),
-                Ignore(GilDebited));
+                Ignore(GilDebited)
+            );
         }
 
         private void ConfigureAny()
