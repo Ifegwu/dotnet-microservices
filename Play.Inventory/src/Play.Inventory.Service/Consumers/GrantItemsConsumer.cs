@@ -6,7 +6,6 @@ using Play.Inventory.Service.Entities;
 using Play.Inventory.Contracts;
 using Play.Inventory.Service.Exceptions;
 
-
 namespace Play.Inventory.Service.Consumers
 {
     public class GrantItemsConsumer : IConsumer<GrantItems>
@@ -45,11 +44,19 @@ namespace Play.Inventory.Service.Consumers
                     AcquiredDate = DateTimeOffset.UtcNow
                 };
 
+                inventoryItem.MessageIds.Add(context.MessageId ?? Guid.NewGuid());
+
                 await inventoryItemsRepository.CreateAsync(inventoryItem);
             }
             else
             {
+                if (inventoryItem.MessageIds.Contains(context.MessageId ?? Guid.Empty))
+                {
+                    await context.Publish(new InventoryItemsGranted(message.CorrelationId));
+                    return;
+                }
                 inventoryItem.Quantity += message.Quantity;
+                inventoryItem.MessageIds.Add(context.MessageId ?? Guid.NewGuid());
                 await inventoryItemsRepository.UpdateAsync(inventoryItem);
             }
 
