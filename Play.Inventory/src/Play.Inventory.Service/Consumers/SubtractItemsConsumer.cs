@@ -36,7 +36,14 @@ namespace Play.Inventory.Service.Consumers
 
             if (inventoryItem != null)
             {
+                if (inventoryItem.MessageIds.Contains(context.MessageId ?? Guid.Empty))
+                {
+                    await context.Publish(new InventoryItemsSubtracted(message.CorrelationId));
+                    return;
+                }
+
                 inventoryItem.Quantity -= message.Quantity;
+                inventoryItem.MessageIds.Add(context.MessageId ?? Guid.NewGuid());
                 await inventoryItemsRepository.UpdateAsync(inventoryItem);
             }
 
