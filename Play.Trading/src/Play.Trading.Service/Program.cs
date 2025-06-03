@@ -26,6 +26,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddMongo()
     .AddMongoRepository<CatalogItem>("catalogitems")
+    .AddMongoRepository<InventoryItem>("inventoryitems")
+    .AddMongoRepository<ApplicationUser>("users")
     .AddJwtBearerAuthentication();
 
 AddMassTransit(builder);
