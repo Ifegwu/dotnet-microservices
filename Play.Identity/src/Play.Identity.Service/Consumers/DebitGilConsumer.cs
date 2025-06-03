@@ -43,7 +43,10 @@ namespace Play.Identity.Service.Consumers
 
             await userManager.UpdateAsync(user);
 
-            await context.Publish(new GilDebited(message.CorrelationId));
+            var gitDebitedTask = context.Publish(new GilDebited(message.CorrelationId));
+            var userUpdatedTask = context.Publish(new UserUpdated(user.Id, user.Email, user.Gil));
+
+            await Task.WhenAll(userUpdatedTask, gitDebitedTask);
         }
     }
 }

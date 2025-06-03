@@ -21,6 +21,8 @@ using Microsoft.Extensions.Logging;
 using Play.Identity.Service.Entities;
 using Play.Identity.Service.Settings;
 using Microsoft.Extensions.Options;
+using MassTransit;
+using Play.Identity.Contracts;
 
 namespace Play.Identity.Service.Areas.Identity.Pages.Account
 {
@@ -34,6 +36,7 @@ namespace Play.Identity.Service.Areas.Identity.Pages.Account
         private readonly IEmailSender _emailSender;
 
         private readonly IdentitySettings _identitySettings;
+        private readonly IPublishEndpoint publishEndpoint;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
@@ -41,7 +44,9 @@ namespace Play.Identity.Service.Areas.Identity.Pages.Account
             SignInManager<ApplicationUser> signInManager,
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
-            IOptions<IdentitySettings> identitySettings)
+            IOptions<IdentitySettings> identitySettings,
+            IPublishEndpoint publishEndpoint
+        )
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -50,6 +55,7 @@ namespace Play.Identity.Service.Areas.Identity.Pages.Account
             _logger = logger;
             _emailSender = emailSender;
             _identitySettings = identitySettings.Value;
+            this.publishEndpoint = publishEndpoint;
         }
 
         /// <summary>
@@ -131,6 +137,7 @@ namespace Play.Identity.Service.Areas.Identity.Pages.Account
                     _logger.LogInformation("User created a new account with password.");
 
                     await _userManager.AddToRoleAsync(user, Roles.Player);
+                    await publishEndpoint.Publish(new UserUpdated(user.Id, user.Email, user.Gil));
                     _logger.LogInformation($"User addedd to the role {Roles.Player} role.");
 
                     var userId = await _userManager.GetUserIdAsync(user);

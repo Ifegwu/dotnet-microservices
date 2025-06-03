@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Play.Identity.Service.Entities;
 using Duende.IdentityServer;
+using MassTransit;
+using Play.Identity.Contracts;
 
 namespace Play.Identity.Service.Controller
 {
@@ -16,10 +18,14 @@ namespace Play.Identity.Service.Controller
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly IPublishEndpoint publishEndpoint;
 
-        public UsersController(UserManager<ApplicationUser> userManager)
+        public UsersController(
+            UserManager<ApplicationUser> userManager,
+            IPublishEndpoint publishEndpoint)
         {
             this.userManager = userManager;
+            this.publishEndpoint = publishEndpoint;
         }
 
         [HttpGet]
@@ -62,6 +68,7 @@ namespace Play.Identity.Service.Controller
             user.Gil = userDto.Gil;
 
             await userManager.UpdateAsync(user);
+            await publishEndpoint.Publish(new UserUpdated(user.Id, user.Email, user.Gil));
             return NoContent();
         }
 
@@ -77,6 +84,8 @@ namespace Play.Identity.Service.Controller
             }
 
             await userManager.DeleteAsync(user);
+
+            await publishEndpoint.Publish(new UserUpdated(user.Id, user.Email, 0));
 
             return NoContent();
         }
