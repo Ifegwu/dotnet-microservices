@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using MassTransit;
 using Play.Common;
@@ -60,7 +61,10 @@ namespace Play.Inventory.Service.Consumers
                 await inventoryItemsRepository.UpdateAsync(inventoryItem);
             }
 
-            await context.Publish(new InventoryItemsGranted(message.CorrelationId));
+            await Task.WhenAll(
+                context.Publish(new InventoryItemUpdated(message.UserId, message.CatalogItemId, inventoryItem.Quantity)),
+                context.Publish(new InventoryItemsGranted(message.CorrelationId))
+            );
         }
     }
 }

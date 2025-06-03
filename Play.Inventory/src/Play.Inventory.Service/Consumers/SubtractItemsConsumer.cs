@@ -1,10 +1,10 @@
 using System;
 using System.Threading.Tasks;
 using MassTransit;
+using Play.Inventory.Contracts;
 using Play.Common;
 using Play.Inventory.Service.Entities;
 using Play.Inventory.Service.Exceptions;
-using Play.Inventory.Contracts;
 
 namespace Play.Inventory.Service.Consumers
 {
@@ -45,6 +45,12 @@ namespace Play.Inventory.Service.Consumers
                 inventoryItem.Quantity -= message.Quantity;
                 inventoryItem.MessageIds.Add(context.MessageId ?? Guid.NewGuid());
                 await inventoryItemsRepository.UpdateAsync(inventoryItem);
+
+                await context.Publish(new InventoryItemUpdated(
+                    inventoryItem.UserId,
+                    inventoryItem.CatalogItemId,
+                    inventoryItem.Quantity
+                ));
             }
 
             await context.Publish(new InventoryItemsSubtracted(message.CorrelationId));
