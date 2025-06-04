@@ -8,6 +8,8 @@ using Play.Common.MongoDB;
 using Play.Common.Identity;
 using Play.Common.MassTransit;
 using Play.Trading.Service.StateMachines;
+using Play.Trading.Service.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using MassTransit;
 using MassTransit.MongoDbIntegration;
 using System;
@@ -88,6 +90,10 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Play.Trading.Service", Version = "v1" });
 });
 
+builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>()
+       .AddSingleton<MessageHub>()
+       .AddSignalR();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -105,7 +111,7 @@ if (app.Environment.IsDevelopment())
             builder.WithOrigins(allowedOrigin)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .AllowCredentials();
+                .AllowCredentials(); //Credentials must be allowed in order for cookie-based sticky sessions to work correctly.
         });
     }
 }
@@ -117,6 +123,12 @@ app.UseRouting();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
+    endpoints.MapHub<MessageHub>("/messagehub");
+});
 
 app.MapControllers();
 

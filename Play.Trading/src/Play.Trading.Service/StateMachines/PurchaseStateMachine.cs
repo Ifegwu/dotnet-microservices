@@ -7,11 +7,13 @@ using Play.Trading.Service.Contracts;
 using Play.Trading.Service.Entities;
 using Play.Trading.Service.Exceptions;
 using Play.Common;
+using Play.Trading.Service.SignalR;
 
 namespace Play.Trading.Service.StateMachines
 {
     public class PurchaseStateMachine : MassTransitStateMachine<PurchaseState>
     {
+        private readonly MessageHub hub;
         public required State Accepted { get; init; }
         public required State ItemsGranted { get; init; }
         public required State Completed { get; init; }
@@ -19,7 +21,7 @@ namespace Play.Trading.Service.StateMachines
 
         public required Event<PurchaseRequested> PurchaseRequested { get; init; }
         public required Event<GetPurchaseState> GetPurchaseState { get; init; }
-        public required Event<InventoryItemsGranted> InvetoryItemsGranted { get; init; }
+        public required Event<InventoryItemsGranted> InventoryItemsGranted { get; init; }
         public required Event<GilDebited> GilDebited { get; init; }
         public required Event<Fault<GrantItems>> GrantItemsFaulted { get; init; }
         public required Event<Fault<DebitGil>> DebitGilFaulted { get; init; }
@@ -28,7 +30,7 @@ namespace Play.Trading.Service.StateMachines
         {
             Event(() => PurchaseRequested);
             Event(() => GetPurchaseState);
-            Event(() => InvetoryItemsGranted);
+            Event(() => InventoryItemsGranted);
             Event(() => GilDebited);
             Event(() => GrantItemsFaulted, x => x.CorrelateById(context =>
                 context.Message.Message.CorrelationId));
@@ -36,7 +38,7 @@ namespace Play.Trading.Service.StateMachines
                 context.Message.Message.CorrelationId));
         }
 
-        public PurchaseStateMachine()
+        public PurchaseStateMachine(MessageHub hub)
         {
             InstanceState(state => state.CurrentState);
             ConfigureInitialState();
@@ -45,6 +47,7 @@ namespace Play.Trading.Service.StateMachines
             ConfigureItemsGranted();
             ConfigureCompleted();
             ConfigureFaulted();
+            this.hub = hub;
         }
 
         private void ConfigureInitialState()
@@ -87,6 +90,7 @@ namespace Play.Trading.Service.StateMachines
                             context.Saga.CurrentState = Faulted.Name;
                         })
                         .TransitionTo(Faulted)
+                        .ThenAsync(async context => await hub.SendStatusAsync(context.Instance))
                     )
             );
         }
@@ -95,7 +99,7 @@ namespace Play.Trading.Service.StateMachines
         {
             During(Accepted,
                 Ignore(PurchaseRequested),
-                When(InvetoryItemsGranted)
+                When(InventoryItemsGranted)
                     .Then(context =>
                     {
                         context.Saga.LastUpdated = DateTimeOffset.UtcNow;
@@ -119,6 +123,7 @@ namespace Play.Trading.Service.StateMachines
                         context.Saga.LastUpdated = DateTimeOffset.UtcNow;
                     })
                     .TransitionTo(Faulted)
+                    .ThenAsync(async context => await hub.SendStatusAsync(context.Instance))
             );
         }
 
@@ -126,13 +131,14 @@ namespace Play.Trading.Service.StateMachines
         {
             During(ItemsGranted,
                 Ignore(PurchaseRequested),
-                Ignore(InvetoryItemsGranted),
+                Ignore(InventoryItemsGranted),
                 When(GilDebited)
                     .Then(context =>
                     {
                         context.Saga.LastUpdated = DateTimeOffset.UtcNow;
                     })
-                    .TransitionTo(Completed),
+                    .TransitionTo(Completed)
+                    .ThenAsync(async context => await hub.SendStatusAsync(context.Instance)),
                 When(DebitGilFaulted)
                     .Then(context =>
                     {
@@ -153,6 +159,7 @@ namespace Play.Trading.Service.StateMachines
                         })
                     )
                     .TransitionTo(Faulted)
+                    .ThenAsync(async context => await hub.SendStatusAsync(context.Instance))
             );
         }
 
@@ -160,7 +167,7 @@ namespace Play.Trading.Service.StateMachines
         {
             During(Completed,
                 Ignore(PurchaseRequested),
-                Ignore(InvetoryItemsGranted),
+                Ignore(InventoryItemsGranted),
                 Ignore(GilDebited)
             );
         }
@@ -177,7 +184,7 @@ namespace Play.Trading.Service.StateMachines
         {
             During(Faulted,
                 Ignore(PurchaseRequested),
-                Ignore(InvetoryItemsGranted),
+                Ignore(InventoryItemsGranted),
                 Ignore(GilDebited));
         }
     }
