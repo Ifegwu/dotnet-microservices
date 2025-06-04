@@ -1,0 +1,51 @@
+microserviceName: "identity"
+
+image:
+  repository: temunahapp.azurecr.io/play.identity
+  tag: 1.0.10
+
+envVariables:
+  ServiceSettings__MessageBroker: SERVICEBUS
+  ServiceSettings__KeyVaultName: temunahapp
+  identitySettings__PathBase: /identity-svc
+  identitySettings__CertificateCerFilePath: "/certificates/certificate.crt"
+  identitySettings__CertificateKeyFilepath:  "/certificates/certificate.key"
+  identityServerSettings__Clients__0__RedirectUris__0: https://temunahapp.eastus.cloudapp.azure.com/authentication/login-callback
+  identityServerSettings__Clients__0__PostLogoutRedirectUris__0: https://temunahapp.eastus.cloudapp.azure.com/authentication/logout-callback
+
+resources:
+ limits:
+   memory: "128Mi"
+   cpu: "150m"
+
+container:
+  port: 5002
+  liveness:
+    path: /health/live
+    initiateDelaySeconds: 10
+  readiness:
+    path: /health/ready
+    initiateDelaySeconds: 10
+  volumeMounts:
+    - name: cerficate-volume
+      mountPath: "/certificates"
+
+volumes:
+  - name: cerficate-volume
+    secret:
+      secretName: signing-cert
+      items:
+        - key: tls.key
+          path: cerficate.key
+        - key: tls.crt
+          path: cerficate.crt
+
+service:
+  type: ClusterIP
+  port: 80
+
+certificate:
+  secretName: signing-cert
+  hostname: temunahapp.eastus.cloudapp.azure.com
+
+identityClientId: ${AZURE_CLIENT_ID}
