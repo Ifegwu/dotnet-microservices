@@ -3,11 +3,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Play.Common.Settings;
+using System.Threading.Tasks;
 
 namespace Play.Common.Identity
 {
     public class ConfigureJwtBearerOptions : IConfigureNamedOptions<JwtBearerOptions>
     {
+        private const string AccessTokenParameter = "access_token";
+        private const string MessageHubPath = "/messageHub";
         private readonly IConfiguration configuration;
 
         public ConfigureJwtBearerOptions(IConfiguration configuration)
@@ -28,6 +31,22 @@ namespace Play.Common.Identity
                     NameClaimType = "name",
                     RoleClaimType = "role",
                 };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query[AccessTokenParameter];
+                        var path = context.HttpContext.Request.Path;
+
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            (path.StartsWithSegments(MessageHubPath)))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
             }
         }
 
@@ -35,5 +54,5 @@ namespace Play.Common.Identity
         {
             Configure(Options.DefaultName, options);
         }
-    }   
+    }
 }
