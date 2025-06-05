@@ -1,0 +1,21 @@
+envVariables:
+  ServiceSettings__MessageBroker: SERVICEBUS
+  ServiceSettings__KeyVaultName: playeconomy
+
+resources:
+ limits:
+   memory: "128Mi"
+   cpu: "150m"
+
+container:
+  liveness:
+    path: /health/live
+    initiateDelaySeconds: 10
+  readiness:
+    path: /health/ready
+    initiateDelaySeconds: 10
+
+service:
+  type: ClusterIP
+  port: 80
+
